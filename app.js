@@ -71,18 +71,18 @@ function vToday(){
  return `<div class="datebar"><button data-act="day" data-n="-1">‹</button><div><b>${d===today()?'Today':''}</b><div>${lbl}</div>${d!==today()?'<small data-act="jump" style="color:var(--ac)">Jump to today</small>':''}</div><button data-act="day" data-n="1">›</button></div>
  <div class="card hero"><div class="big">${fmt(t.kcal)}</div><div class="sub">of ${fmt(g.kcal)} kcal · ${fmt(pct)}%</div>${bar(pct)}<div class="sub ${rem<0?'over':''}"><b>${rem>=0?fmt(rem)+' kcal remaining':fmt(-rem)+' kcal over target'}</b></div></div>
  <div class="card">${['p','c','f'].map(mr).join('')}</div>
- <button class="quick" data-act="quick">+ Quick Add</button>${MEALS.map(mc).join('')}
+ <div class="btns" style="margin-bottom:12px;flex-wrap:nowrap"><button class="quick" style="flex:3;margin:0;width:auto;min-width:0" data-act="quick">+ Quick Add</button><button class="quick sv" style="flex:2;margin:0;width:auto;min-width:0;font-size:17px" data-act="gosaved">⭐ Saved Meals</button></div>${MEALS.map(mc).join('')}
  <button class="btn ${S.complete[d]?'pri':''}" data-act="complete">${S.complete[d]?'✓ Day marked complete (tap to undo)':'Mark day as complete'}</button>`}
 function vAdd(){
- const tabs=seg([['quick','Quick'],['ingr','Ingredients'],['text','Type'],['saved','My Meals']],ui.add,'addtab');
+ const tabs=seg([['quick','Quick'],['ingr','Ingredients'],['text','Type'],['saved',`⭐ Saved Meals (${S.saved.length})`]],ui.add,'addtab');
  if(ui.add==='quick')return tabs+`<div class="card"><h3>Quick Add</h3>${nutForm({meal:guessMeal(),date:ui.date},'quick','Save')}</div>`;
  if(ui.add==='ingr')return tabs+vBuild('add');
  if(ui.add==='text')return tabs+vText();
  return tabs+vSaved()}
 function vSaved(){
- return `<div class="card"><div class="mh"><span>My Meals</span><button class="pri" data-act="newmeal">+ New meal</button></div>
+ return `<div class="card"><div class="mh"><span>Saved Meals (${S.saved.length})</span><button class="pri" data-act="newmeal">+ New meal</button></div>
  <input data-in="sq" type="search" placeholder="Search my meals and past meals…" value="${esc(ui.sq)}">
- ${seg([['fav','★ Favourites'],['freq','Frequent'],['recent','Recent'],['az','A–Z'],['eaten','Eaten']],ui.saveTab,'savetab')}<div id="slist">${savedList()}</div></div>
+ ${seg([['all','All'],['fav','★ Favourites'],['recent','Recent'],['freq','Frequent'],['eaten','Eaten']],ui.saveTab,'savetab')}<div id="slist">${savedList()}</div></div>
  <div class="card"><h3>Copy from a previous day</h3><form data-form="copyday"><div class="grid2"><label>From date<input name="from" type="date" value="${addDays(ui.date,-1)}"></label><label>Meal<select name="meal"><option value="all">All meals</option>${mealOpts('')}</select></label></div><button class="btn">Copy to ${ui.date}</button></form></div>`}
 function savedList(){
  const q=ui.sq.trim().toLowerCase();ui.pool=[];const pr=r=>{ui.pool.push(r);return recentRow(r,ui.pool.length-1)};
@@ -92,8 +92,8 @@ function savedList(){
  if(ui.saveTab==='fav')l=l.filter(s=>s.fav).sort(byName);
  else if(ui.saveTab==='freq')l=l.filter(s=>s.count>0).sort((a,b)=>b.count-a.count||byName(a,b)).slice(0,20);
  else if(ui.saveTab==='recent')l=l.filter(s=>s.last).sort((a,b)=>b.last-a.last).slice(0,20);
- else l.sort(byName);
- return l.map(savedRow).join('')||'<small>Nothing here yet. Use “+ New meal”, or “Save to My Meals” on a diary entry.</small>'}
+ else l.sort((a,b)=>(!!b.fav)-(!!a.fav)||byName(a,b));
+ return l.map(savedRow).join('')||(ui.saveTab==='all'?'<small>No saved meals yet. Use “+ New meal”, or “Save to My Meals” on a diary entry.</small>':`<small>Nothing in this tab yet. ${S.saved.length?`You have ${S.saved.length} saved meal(s) – tap <b>All</b> to see them.`:''}</small>`)}
 function resHTML(){
  const q=ui.q.trim().toLowerCase();let l;
  if(!q)l=S.recent.map(id=>S.ingredients.find(i=>i.id===id)).filter(Boolean);else{const w=q.split(/\s+/);l=S.ingredients.filter(i=>w.every(x=>i.name.toLowerCase().includes(x))).slice(0,15)}
@@ -198,7 +198,7 @@ function mealForm(s){s=s||{};return `<form data-form="saved" ${s.id?`data-id="${
  <label>Ingredients (optional notes – does not change the calories)<textarea name="ing" rows="3">${esc(s.ing||'')}</textarea></label>
  <label><input type="checkbox" name="fav" ${s.fav?'checked':''} style="width:auto"> Favourite</label><button class="btn pri">Save</button></form>`}
 function saveMealFrom(o,meal,ing=''){if(!o.name||o.name==='Quick add'){toast('Give it a name first');return false}if(S.saved.some(s=>sameMeal(s,o))){toast('Already in My Meals');return true}
- S.saved.push({id:uid(),name:o.name,kcal:o.kcal,p:o.p,c:o.c,f:o.f,fav:false,portion:1,meal:meal||'',ing,count:0,last:0});save();toast('Saved to My Meals');return true}
+ S.saved.push({id:uid(),name:o.name,kcal:o.kcal,p:o.p,c:o.c,f:o.f,fav:false,portion:1,meal:meal||'',ing,count:0,last:0});ui.saveTab='all';save();toast('Saved – find it under Saved Meals');return true}
 function updPrev(){const el=$('#lprev'),i=$('#panel [name=n]');if(!el||!i||!ui.log)return;const n=Number(i.value),b=ui.log.b;
  el.innerHTML=i.value.trim()!==''&&n>0?`<b>${fmt(b.kcal*n)} kcal</b><small>${fmt(b.p*n,1)}g P · ${fmt(b.c*n,1)}g C · ${fmt(b.f*n,1)}g F</small>`:'<small class="over">Enter a portion above 0</small>'}
 function logSheet(b,src){ui.log={b,src};
@@ -255,6 +255,7 @@ function mergeData(cur,d){d=migrate(d);const un=(a,b)=>{const ids=new Set(a.map(
  const gf=new Set(cur.goals.map(g=>g.from));d.goals.forEach(g=>{if(!gf.has(g.from)&&g.from!=='1970-01-01')cur.goals.push(g)});cur.goals.sort((a,b)=>a.from.localeCompare(b.from));
  for(const k in d.complete)if(!(k in cur.complete))cur.complete[k]=d.complete[k];return cur}
 const acts={
+ gosaved(){ui.tab='add';ui.add='saved';ui.saveTab='all';ui.sq='';ui.set=null;ui.recipeEdit=false;render();scrollTo(0,0)},
  newmeal(){openSheet('<h3>New meal</h3>'+mealForm())},
  savedmenu(el){const s=S.saved.find(x=>x.id===el.dataset.id);openSheet(`<h3>Edit meal</h3><small>Changes apply to future logging only – past diary entries keep their values.</small>`+mealForm(s)+`<div class="btns" style="margin-top:10px"><button data-act="sdup" data-id="${s.id}">Duplicate</button><button class="dng" data-act="sdel" data-id="${s.id}">Delete</button></div>`)},
  mealadd(el){if(el.dataset.id)logSheet(S.saved.find(x=>x.id===el.dataset.id),'s');else logSheet(ui.pool[+el.dataset.i],'r')},
@@ -345,7 +346,7 @@ const forms={
   save();closeSheet();render();return true},
  log(f){const n=Number(f.n.value),L=ui.log;if(!L||!(n>0)){toast('Portions must be above 0');return false}const b=L.b,v=K.reduce((o,k)=>(o[k]=b[k]*n,o),{});
   addEntry(f.date.value||ui.date,f.meal.value,n===1?b.name:`${b.name} ×${fmt(n,2)}`,v,L.src==='s'?b.id:undefined);
-  if(L.src==='s'){b.meal=f.meal.value;b.last=Date.now();b.count=(b.count||0)+1}save();closeSheet();render();toast('Added to '+f.meal.value);return true},
+  if(L.src==='s'){b.meal=f.meal.value;b.last=Date.now();b.count=(b.count||0)+1}save();closeSheet();render();toast('Added to '+f.meal.value+' – see Today');return true},
  copy(f){const e=findE(f.dataset.id);if(!f.date.value)return false;const dup=S.entries.some(x=>x.date===f.date.value&&x.meal===f.meal.value&&x.name===e.name&&K.every(k=>x[k]===e[k]));
   if(dup&&!confirm('An identical entry already exists there. Copy anyway?'))return false;addEntry(f.date.value,f.meal.value,e.name,e);closeSheet();toast('Copied');return true},
  copyday(f){const src=S.entries.filter(e=>e.date===f.from.value&&(f.meal.value==='all'||e.meal===f.meal.value));if(!src.length){toast('Nothing to copy from that day');return false}
@@ -370,7 +371,9 @@ if(typeof document!=='undefined'){
  document.addEventListener('focusin',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))setTimeout(()=>{try{e.target.scrollIntoView({block:'center',behavior:'smooth'})}catch(x){}},350)});
  if(window.visualViewport)visualViewport.addEventListener('resize',()=>{$('#nav').style.display=innerHeight-visualViewport.height>120?'none':''});
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)flush()});addEventListener('pagehide',()=>{if(S)flush()});
+ const legacyGet=()=>new Promise((res,rej)=>{const r=indexedDB.open('macro-tracker');r.onupgradeneeded=()=>r.transaction.abort();r.onerror=()=>rej(r.error);r.onsuccess=()=>{try{const q=r.result.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>{r.result.close();res(q.result)};q.onerror=()=>rej(q.error)}catch(e){rej(e)}}});
  (async()=>{try{S=await DB.get('state')}catch(e){}
+  if(!S){try{S=await legacyGet();if(S)save()}catch(e){S=null}}
   if(!S){S=defState();save()}S=migrate(S);render();
   if('serviceWorker' in navigator){const had=navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!window._rl){window._rl=1;location.reload()}});navigator.serviceWorker.register('sw.js').catch(()=>{})}})()}
 if(typeof module!=='undefined')module.exports={parsePaste,rankMeals,mergeData,validBackup,migrate,SEED,draftTot,grams,meets,parseText,fmt,addDays,goalFor,stats,dayTot,_set:s=>{S=s},defState,rangeDays};

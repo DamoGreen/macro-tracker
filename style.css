@@ -37,3 +37,5 @@ input,select,textarea{font-size:16px!important;max-width:100%;min-width:0;touch-
 input[type=date],input[type=search]{-webkit-appearance:none;appearance:none;min-height:46px;text-align:left}
 input[type=checkbox]{width:auto;min-height:0;margin-right:8px}
 .grid2>*{min-width:0}.miss{border:1px solid #f59e0b!important}.sug .row{cursor:pointer}textarea{resize:vertical;min-height:120px}
+
+.quick.sv{background:var(--card);color:var(--ac);border:2px solid var(--ac)}
